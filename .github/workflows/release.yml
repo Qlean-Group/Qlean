@@ -1,0 +1,148 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version tag (e.g. v0.1.0)'
+        required: true
+        default: 'v0.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-native:
+    name: Build Native (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary_name: qlean
+            artifact_name: qlean-linux-x86_64.tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_name: qlean.exe
+            artifact_name: qlean-windows-x86_64.zip
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            binary_name: qlean
+            artifact_name: qlean-macos-x86_64.tar.gz
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Test
+        run: cargo test --target ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package Unix
+        if: matrix.os != 'windows-latest'
+        run: |
+          tar -czvf ${{ matrix.artifact_name }} \
+            -C target/${{ matrix.target }}/release ${{ matrix.binary_name }} \
+            -C ../../../ README.md LICENSE-MIT LICENSE-APACHE
+
+      - name: Package Windows
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path target/${{ matrix.target }}/release/${{ matrix.binary_name }}, README.md, LICENSE-MIT, LICENSE-APACHE -DestinationPath ${{ matrix.artifact_name }}
+
+      - name: Upload Native Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+
+  build-wasm:
+    name: Build WebAssembly (wasm32-unknown-unknown)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Build WASM
+        run: cargo build --release --target wasm32-unknown-unknown --features wasm
+
+      - name: Package WASM
+        run: |
+          mkdir -p wasm-dist
+          cp target/wasm32-unknown-unknown/release/qlean.wasm wasm-dist/
+          cp -r demo wasm-dist/
+          cp README.md LICENSE-MIT LICENSE-APACHE wasm-dist/
+          tar -czvf qlean-wasm.tar.gz -C wasm-dist .
+
+      - name: Upload WASM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qlean-wasm.tar.gz
+          path: qlean-wasm.tar.gz
+
+  package-crate:
+    name: Package Cargo Crate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Package Crate
+        run: cargo package --no-verify
+
+      - name: Upload Crate Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-crate
+          path: target/package/*.crate
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-native, build-wasm, package-crate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine Release Tag
+        id: release_tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          name: Release ${{ steps.release_tag.outputs.tag }}
+          draft: false
+          prerelease: false
+          files: |
+            release-assets/*.tar.gz
+            release-assets/*.zip
+            release-assets/*.crate
+

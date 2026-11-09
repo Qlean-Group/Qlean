@@ -1,0 +1,33 @@
+[package]
+name = "qlean"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+
+[lib]
+name = "qlean"
+path = "src/lib.rs"
+crate-type = ["rlib"]
+
+[[bin]]
+name = "qlean"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+qsc = { git = "https://github.com/microsoft/qdk", tag = "v1.33.0" }
+qsc_frontend = { git = "https://github.com/microsoft/qdk", tag = "v1.33.0" }
+qsc_hir = { git = "https://github.com/microsoft/qdk", tag = "v1.33.0" }
+qsc_data_structures = { git = "https://github.com/microsoft/qdk", tag = "v1.33.0" }
+miette = "7.6"
+thiserror = "2.0"
+wasm-bindgen = { version = "0.2", optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.4", features = ["wasm_js"] }
+
+[features]
+default = []
+wasm = ["dep:wasm-bindgen"]
