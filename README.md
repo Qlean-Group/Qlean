@@ -99,6 +99,57 @@ You can also pass a directory to recursively check all `.qs` files:
 qlean lint tests/fixtures/
 ```
 
+## GitHub Action
+
+You can use Qlean directly as a GitHub Action in other Q# repositories.
+
+### Basic Usage
+
+Add `.github/workflows/qlean.yml` to your repository:
+
+```yaml
+name: Q# Static Analysis
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Qlean
+        uses: Qlean-Group/Qlean@v0.1.0
+        with:
+          path: '.'
+          include-ast: 'true'
+```
+
+### GitHub Code Scanning (SARIF) Integration
+
+To display quantum hygiene bugs directly inside Pull Request diff annotations and GitHub Code Scanning alerts:
+
+```yaml
+name: Q# Code Scanning
+on: [push, pull_request]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Qlean (SARIF)
+        uses: Qlean-Group/Qlean@v0.1.0
+        with:
+          path: '.'
+          format: 'sarif'
+          output-file: 'qlean-results.sarif'
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'qlean-results.sarif'
+```
+
 ## Detected Rules
 
 ### `ancilla-leak`
