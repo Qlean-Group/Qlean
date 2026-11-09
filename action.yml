@@ -1,6 +1,9 @@
 name: 'Qlean Q# Static Analyzer'
 description: 'Semantic static analyzer and qubit hygiene linter for Q#'
 author: 'Qlean'
+branding:
+  icon: 'check-circle'
+  color: 'blue'
 inputs:
   path:
     description: 'Path or directory of .qs files to lint'
