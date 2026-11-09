@@ -1,3 +1,5 @@
+<img src="assets/qlean-banner.jpg" />
+
 # Qlean
 
 A semantic static analyzer for Q# that detects quantum-state hygiene bugs Microsoft's `qsc_linter` does not cover.
