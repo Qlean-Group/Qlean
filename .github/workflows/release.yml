@@ -94,26 +94,9 @@ jobs:
           name: qlean-wasm.tar.gz
           path: qlean-wasm.tar.gz
 
-  package-crate:
-    name: Package Cargo Crate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - name: Package Crate
-        run: cargo package --no-verify
-
-      - name: Upload Crate Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cargo-crate
-          path: target/package/*.crate
-
   publish-release:
     name: Publish GitHub Release
-    needs: [build-native, build-wasm, package-crate]
+    needs: [build-native, build-wasm]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -144,5 +127,4 @@ jobs:
           files: |
             release-assets/*.tar.gz
             release-assets/*.zip
-            release-assets/*.crate
 

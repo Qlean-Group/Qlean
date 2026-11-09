@@ -3,6 +3,9 @@ name = "qlean"
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
+description = "Semantic static analyzer for Q#"
+repository = "https://github.com/Qlean-Group/Qlean"
+homepage = "https://github.com/Qlean-Group/Qlean"
 
 [lib]
 name = "qlean"
